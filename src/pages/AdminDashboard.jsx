@@ -1,140 +1,94 @@
-import { useState, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import TaskForm from "../components/TaskForm";
-import { useTask } from "../context/task/useTask";
 import TaskStatus from "../components/TaskStatus";
+import { useTask } from "../context/task/useTask";
+import { createTask, updateTask, deleteTask } from "../api/taskApi";
 
 const AdminDashboard = () => {
-  const { tasks, setTasks } = useTask();
+  const { tasks, fetchTasks, loading } = useTask();
   const [editingTask, setEditingTask] = useState(null);
 
-  const addTask = useCallback(
-    (task) => {
-      setTasks((prev) => [...prev, { ...task, id: Date.now() }]);
-    },
-    [setTasks],
-  );
+  const formRef = useRef(null); // 👈 NEW
 
-  const updateTask = useCallback(
-    (updatedTask) => {
-      setTasks((prev) =>
-        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
-      );
-      setEditingTask(null);
-    },
-    [setTasks],
-  );
+  const handleAdd = async (task) => {
+    await createTask(task);
+    fetchTasks();
+  };
 
-  const deleteTask = useCallback(
-    (id) => {
-      setTasks((prev) => prev.filter((task) => task.id !== id));
-    },
-    [setTasks],
-  );
+  const handleUpdate = async (task) => {
+    await updateTask(task._id, task);
+    setEditingTask(null);
+    fetchTasks();
+  };
 
-  const handleEdit = useCallback((task) => {
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this task?")) return;
+    await deleteTask(id);
+    fetchTasks();
+  };
+
+  const handleEdit = (task) => {
     setEditingTask(task);
-  }, []);
+  };
+
+  // ✅ Scroll when editing starts
+  useEffect(() => {
+    if (editingTask && formRef.current) {
+      formRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [editingTask]);
 
   return (
     <div className="container py-4">
-      {/* Page Header */}
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Admin Dashboard</h2>
-        <p className="text-muted mb-0">
-          Manage tasks and assignments efficiently
-        </p>
+      <h2>Admin Dashboard</h2>
+      <TaskStatus />
+
+      {/* 👇 SCROLL TARGET */}
+      <div ref={formRef} className="card p-3 mb-4">
+        <TaskForm
+          key={editingTask?._id || "new"}
+          editingTask={editingTask}
+          onSubmit={editingTask ? handleUpdate : handleAdd}
+        />
       </div>
 
-      <TaskStatus/>
+      <h3>Tasks</h3>
 
-      {/* Task Form Card */}
-      <div className="card shadow-sm rounded-4 mb-4 border-0">
-        <div
-          className="card-header py-3 fw-semibold text-white"
-          style={{
-            background: "linear-gradient(90deg, #2563eb, #0ea5e9)",
-            borderTopLeftRadius: "16px",
-            borderTopRightRadius: "16px",
-          }}>
-          {editingTask ? "Edit Task" : "Add New Task"}
-        </div>
-        <div className="card-body">
-          <TaskForm
-            key={editingTask?.id || "new"}
-            addTask={addTask}
-            editingTask={editingTask}
-            updateTask={updateTask}
-          />
-        </div>
-      </div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : tasks.length === 0 ? (
+        <p>No tasks yet.</p>
+      ) : (
+        <div className="row g-3">
+          {tasks.map((task) => (
+            <div key={task._id} className="col-md-4">
+              <div className="card p-3 h-100">
+                <h5>{task.title}</h5>
+                <p>{task.description}</p>
+                <small>👤 {task.assignedTo?.name || "Unassigned"}</small>
+                <br />
+                <small>📅 {task.dueDate?.slice(0, 10)}</small>
 
-      {/* Task List */}
-      <h2 className="py-2 fw-semibold">Tasks</h2>
-      <div className="row g-3">
-        {tasks.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            No tasks created yet.
-          </div>
-        ) : (
-          tasks.map((task) => (
-            <div className="col-12 col-md-6 col-lg-4" key={task.id}>
-              <div className="card border-0 shadow-sm rounded-4 h-100 task-card">
-                <div className="card-body d-flex flex-column">
-                  {/* Title */}
-                  <h5 className="fw-bold mb-1">{task.title}</h5>
-
-                  {/* Description */}
-                  <p className="text-muted small mb-3">{task.description}</p>
-
-                  {/* Badges */}
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    <span
-                      className={`badge rounded-pill px-3 py-2 ${
-                        task.priority === "High"
-                          ? "bg-danger-subtle text-danger"
-                          : task.priority === "Medium"
-                            ? "bg-warning-subtle text-warning"
-                            : "bg-info-subtle text-info"
-                      }`}>
-                      {task.priority}
-                    </span>
-
-                    <span
-                      className={`badge rounded-pill px-3 py-2 ${
-                        task.status === "Completed"
-                          ? "bg-success-subtle text-success"
-                          : task.status === "In Progress"
-                            ? "bg-warning-subtle text-warning"
-                            : "bg-secondary-subtle text-secondary"
-                      }`}>
-                      {task.status}
-                    </span>
-                  </div>
-
-                  {/* Due Date */}
-                  <small className="text-muted mb-3">
-                    📅 Due: {task.dueDate}
-                  </small>
-
-                  {/* Actions */}
-                  <div className="mt-auto d-flex gap-2">
-                    <button
-                      className="btn btn-outline-primary btn-sm flex-grow-1"
-                      onClick={() => handleEdit(task)}>
-                      ✏️ Edit
-                    </button>
-                    <button
-                      className="btn btn-outline-danger btn-sm flex-grow-1"
-                      onClick={() => deleteTask(task.id)}>
-                      🗑 Delete
-                    </button>
-                  </div>
+                <div className="mt-3 d-flex gap-2">
+                  <button
+                    className="btn btn-warning btn-sm"
+                    onClick={() => handleEdit(task)}>
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDelete(task._id)}>
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

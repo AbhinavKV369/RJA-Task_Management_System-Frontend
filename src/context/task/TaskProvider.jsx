@@ -1,15 +1,31 @@
-import React, { useState } from "react";
-import { initialTasks } from "../../data/tasks";
+import { useEffect, useState } from "react";
+import { getTasks } from "../../api/taskApi";
 import { TaskContext } from "./TaskContext";
 
-const TaskProvider = ({ children }) => {
-  const [tasks, setTasks] = useState(initialTasks);
+export const TaskProvider = ({ children }) => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch tasks from API
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const data = await getTasks();
+      setTasks(data);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
   return (
-    <TaskContext.Provider value={{ tasks, setTasks }}>
+    <TaskContext.Provider value={{ tasks, setTasks, fetchTasks, loading }}>
       {children}
     </TaskContext.Provider>
   );
 };
-
-export default TaskProvider;
-

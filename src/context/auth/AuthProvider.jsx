@@ -1,25 +1,30 @@
-import React, { useState } from 'react'
-import { users } from '../../data/users';
-import { AuthContext } from './AuthContext';
+import { useState } from "react";
+import { AuthContext } from "./AuthContext";
 
-const AuthProvider = ({children}) => {
-  const [user,setUser] = useState(null);
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  });
 
-  const login = (email,password) => {
-    const registeredUser = users.find((user)=>user.email === email && user.password === password);
-    if(!registeredUser) return false;
-    setUser(registeredUser);
-    return true;
-  }
-  const logout = () =>{
+  const login = (data) => {
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("user");
     setUser(null);
-  }
+  };
 
   return (
-    <AuthContext.Provider value={{user,login,logout}}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
-export default AuthProvider
+export default AuthProvider;

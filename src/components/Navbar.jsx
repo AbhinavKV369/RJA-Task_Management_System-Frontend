@@ -6,10 +6,13 @@ const Navbar = () => {
   const location = useLocation();
   const {user,logout} = useAuth();
 
-  const navLinks = [
-    user?.role === "admin" ?
-    { name: "Dashboard", path: "#" }:{},
-  ];
+const navLinks =
+  user?.role === "admin"
+    ? [
+        { name: "Dashboard", path: "/admin" },
+        { name: "Users", path: "/admin/users" },
+      ]
+    : [{ name: "Dashboard", path: "/employee" }];
 
   const isActive = (path) => location.pathname === path;
 

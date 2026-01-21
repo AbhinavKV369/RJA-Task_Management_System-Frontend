@@ -1,6 +1,6 @@
 import React from "react";
 import AuthProvider from "../context/auth/AuthProvider";
-import TaskProvider from "../context/task/TaskProvider";
+import { TaskProvider } from "../context/task/TaskProvider";
 
 const Provider = ({ children }) => {
   return (

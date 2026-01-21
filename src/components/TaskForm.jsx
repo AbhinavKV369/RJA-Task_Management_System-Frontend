@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { users } from "../data/users";
+import { useState, useEffect } from "react";
+import { getEmployees } from "../api/userApi";
 
 const EMPTY_TASK = {
   title: "",
@@ -10,17 +10,27 @@ const EMPTY_TASK = {
   dueDate: "",
 };
 
-const TaskForm = ({ addTask, editingTask, updateTask }) => {
-  const [task, setTask] = useState(editingTask ?? EMPTY_TASK);
+const TaskForm = ({ editingTask, onSubmit }) => {
+  const [task, setTask] = useState(() => editingTask ?? EMPTY_TASK);
+  const [employees, setEmployees] = useState([]);
   const [error, setError] = useState("");
+
+  // Load employees (VALID useEffect – external system)
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const data = await getEmployees();
+        setEmployees(data);
+      } catch (err) {
+        console.error("Failed to load employees", err);
+      }
+    };
+    loadEmployees();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setTask((prev) => ({
-      ...prev,
-      [name]: name === "assignedTo" ? Number(value) : value,
-    }));
+    setTask((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -31,44 +41,39 @@ const TaskForm = ({ addTask, editingTask, updateTask }) => {
       return;
     }
 
-    editingTask ? updateTask(task) : addTask(task);
-
+    onSubmit(task);
     setTask(EMPTY_TASK);
     setError("");
   };
 
-  const employees = users.filter((u) => u.role === "employee");
-
   return (
-    <form onSubmit={handleSubmit} className="card p-3 mb-4">
-      <h5>{editingTask ? "Edit Task" : "Add Task"}</h5>
-
+    <form id="taskform" onSubmit={handleSubmit}>
       {error && <div className="alert alert-danger">{error}</div>}
-
+      <h3>Add/Edit Task</h3>
       <input
         name="title"
-        className="form-control mb-2"
-        placeholder="Title"
         value={task.title}
         onChange={handleChange}
+        placeholder="Title"
+        className="form-control mb-2"
       />
 
       <textarea
         name="description"
-        className="form-control mb-2"
-        placeholder="Description"
         value={task.description}
         onChange={handleChange}
+        placeholder="Description"
+        className="form-control mb-2"
       />
 
       <select
         name="assignedTo"
-        className="form-control mb-2"
-        value={task.assignedTo}
-        onChange={handleChange}>
+        value={task.assignedTo || ""}
+        onChange={handleChange}
+        className="form-control mb-2">
         <option value="">Assign Employee</option>
         {employees.map((emp) => (
-          <option key={emp.id} value={emp.id}>
+          <option key={emp._id} value={emp._id}>
             {emp.name}
           </option>
         ))}
@@ -76,9 +81,9 @@ const TaskForm = ({ addTask, editingTask, updateTask }) => {
 
       <select
         name="priority"
-        className="form-control mb-2"
         value={task.priority}
-        onChange={handleChange}>
+        onChange={handleChange}
+        className="form-control mb-2">
         <option>Low</option>
         <option>Medium</option>
         <option>High</option>
@@ -87,9 +92,9 @@ const TaskForm = ({ addTask, editingTask, updateTask }) => {
       <input
         type="date"
         name="dueDate"
-        className="form-control mb-3"
-        value={task.dueDate}
+        value={task.dueDate?.slice(0, 10) || ""}
         onChange={handleChange}
+        className="form-control mb-3"
       />
 
       <button className="btn btn-primary">

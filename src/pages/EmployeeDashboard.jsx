@@ -1,16 +1,23 @@
 import { useAuth } from "../context/auth/useAuth";
 import { useTask } from "../context/task/useTask";
+import { updateTask } from "../api/taskApi";
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const { tasks, setTasks } = useTask();
+  const { tasks, fetchTasks, loading } = useTask();
 
-  const myTasks = tasks.filter((task) => task.assignedTo === user.id);
+  // Filter tasks assigned to this employee
+  const myTasks = tasks.filter((task) => task.assignedTo?._id === user._id);
 
-  const updateStatus = (id, status) => {
-    setTasks(
-      tasks.map((task) => (task.id === id ? { ...task, status } : task)),
-    );
+  // Update status via API
+  const updateStatus = async (taskId, status) => {
+    try {
+      await updateTask(taskId, { status });
+      await fetchTasks(); // Refresh tasks from API
+    } catch (err) {
+      console.error("Failed to update status:", err.message);
+      alert("Failed to update task status.");
+    }
   };
 
   const statusBadge = (status) =>
@@ -32,6 +39,8 @@ const EmployeeDashboard = () => {
     progress: myTasks.filter((t) => t.status === "In Progress").length,
     completed: myTasks.filter((t) => t.status === "Completed").length,
   };
+
+  if (loading) return <p className="text-center py-5">Loading tasks...</p>;
 
   return (
     <div className="container py-4">
@@ -85,7 +94,7 @@ const EmployeeDashboard = () => {
       ) : (
         <div className="row g-4">
           {myTasks.map((task) => (
-            <div className="col-12 col-md-6 col-lg-4" key={task.id}>
+            <div className="col-12 col-md-6 col-lg-4" key={task._id}>
               <div className="card border-0 shadow-sm rounded-4 h-100">
                 <div className="card-body d-flex flex-column">
                   {/* Title */}
@@ -97,23 +106,19 @@ const EmployeeDashboard = () => {
                   {/* Badges */}
                   <div className="d-flex flex-wrap gap-2 mb-3">
                     <span
-                      className={`badge rounded-pill px-3 py-2 ${priorityBadge(
-                        task.priority,
-                      )}`}>
+                      className={`badge rounded-pill px-3 py-2 ${priorityBadge(task.priority)}`}>
                       {task.priority}
                     </span>
 
                     <span
-                      className={`badge rounded-pill px-3 py-2 ${statusBadge(
-                        task.status,
-                      )}`}>
+                      className={`badge rounded-pill px-3 py-2 ${statusBadge(task.status)}`}>
                       {task.status}
                     </span>
                   </div>
 
                   {/* Due Date */}
                   <div className="text-muted small mb-3">
-                    <strong>Due:</strong> {task.dueDate}
+                    <strong>Due:</strong> {task.dueDate?.slice(0, 10)}
                   </div>
 
                   {/* Update Status */}
@@ -124,7 +129,7 @@ const EmployeeDashboard = () => {
                     <select
                       className="form-select form-select-sm"
                       value={task.status}
-                      onChange={(e) => updateStatus(task.id, e.target.value)}>
+                      onChange={(e) => updateStatus(task._id, e.target.value)}>
                       <option>Pending</option>
                       <option>In Progress</option>
                       <option>Completed</option>

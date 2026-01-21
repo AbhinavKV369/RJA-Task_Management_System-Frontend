@@ -1,10 +1,10 @@
-import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Login from "../pages/Login";
 import AdminDashboard from "../pages/AdminDashboard";
 import EmployeeDashboard from "../pages/EmployeeDashboard";
 import ProtectedRoute from "../routes/ProtectedRoute";
 import MainLayout from "../layout/mainLayout";
+import AdminUsers from "../pages/AdminUsers";
 
 const App = () => {
   return (
@@ -20,6 +20,14 @@ const App = () => {
             element={
               <MainLayout>
                 <AdminDashboard />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <MainLayout>
+                <AdminUsers />
               </MainLayout>
             }
           />
